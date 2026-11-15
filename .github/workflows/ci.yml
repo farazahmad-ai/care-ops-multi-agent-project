@@ -1,0 +1,73 @@
+name: Platform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-types:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Check code formatting (black)
+        run: uv run black --check services agents
+
+      - name: Lint source code (ruff)
+        run: uv run ruff check services agents
+
+      - name: Strict type check (mypy)
+        run: uv run mypy --strict services/agent-api/src services/agent-api/tests
+
+  unit-tests:
+    name: Unit & Policy Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "latest"
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run Python unit tests (pytest)
+        run: uv run pytest
+
+      - name: Run OPA policy tests (if policies exist)
+        run: |
+          if [ -d "infra/opa" ] && [ -n "$(find infra/opa -name '*.rego' 2>/dev/null)" ]; then
+            echo "Found OPA policies. Running opa test..."
+            curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
+            chmod 755 ./opa
+            ./opa test infra/opa/ -v
+          else
+            echo "No OPA policies found yet (scheduled for Task 1.4). Skipping OPA test."
+          fi
