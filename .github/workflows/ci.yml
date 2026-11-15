@@ -2,7 +2,7 @@ name: Platform CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, "phase/*", "feature/*"]
   pull_request:
     branches: [main]
 
@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   lint-and-types:
-    name: Lint & Type Check
+    name: Python Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -31,16 +31,38 @@ jobs:
         run: uv sync --frozen
 
       - name: Check code formatting (black)
-        run: uv run black --check services agents
+        run: uv run black --check services agents scripts
 
       - name: Lint source code (ruff)
-        run: uv run ruff check services agents
+        run: uv run ruff check services agents scripts
 
       - name: Strict type check (mypy)
-        run: uv run mypy --strict services/agent-api/src services/agent-api/tests
+        run: uv run mypy --strict services/agent-api/src services/agent-api/tests services/mcp-servers/src services/mcp-servers/tests scripts
 
-  unit-tests:
-    name: Unit & Policy Tests
+  frontend-build:
+    name: Frontend Typecheck & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build frontend SPA (TypeScript & Vite)
+        run: |
+          cd frontend
+          npm run build
+
+  policy-and-unit-tests:
+    name: OPA Policies & Unit Tests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -58,16 +80,20 @@ jobs:
       - name: Install dependencies
         run: uv sync --frozen
 
-      - name: Run Python unit tests (pytest)
-        run: uv run pytest
-
-      - name: Run OPA policy tests (if policies exist)
+      - name: Run OPA policy tests
         run: |
-          if [ -d "infra/opa" ] && [ -n "$(find infra/opa -name '*.rego' 2>/dev/null)" ]; then
-            echo "Found OPA policies. Running opa test..."
-            curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_amd64_static
-            chmod 755 ./opa
-            ./opa test infra/opa/ -v
-          else
-            echo "No OPA policies found yet (scheduled for Task 1.4). Skipping OPA test."
-          fi
+          curl -L -o opa https://openpolicyagent.org/downloads/v0.68.0/opa_linux_amd64_static
+          chmod 755 ./opa
+          ./opa test infra/opa/policies/ -v
+
+      - name: Start platform containers (PostgreSQL, Redis, Keycloak, OPA)
+        run: |
+          docker compose up -d
+          echo "Waiting for PostgreSQL to be ready..."
+          until docker exec careops_platform_postgres pg_isready -U careops_user -d careops; do
+            sleep 1
+          done
+          echo "PostgreSQL is ready."
+
+      - name: Run Python test suite (pytest)
+        run: uv run pytest
