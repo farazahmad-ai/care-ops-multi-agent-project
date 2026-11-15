@@ -13,11 +13,9 @@ test:
 eval:
 	@echo "[STUB] make eval is not implemented yet — scheduled for Phase 3 (Task 3.12)."
 
-# Stub: Phase 1 will add platform docker-compose.yml (PostgreSQL+pgvector, Redis, Keycloak, OPA)
 up:
-	@echo "[STUB] make up is not implemented yet — platform Compose starts in Phase 1 (Task 1.1). Legacy sandbox lives in company-sandbox/."
+	docker compose up -d
 
-# Stub: Phase 1 will tear down platform docker-compose.yml
 down:
-	@echo "[STUB] make down is not implemented yet — platform Compose starts in Phase 1 (Task 1.1)."
+	docker compose down
 

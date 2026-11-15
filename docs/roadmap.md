@@ -83,7 +83,7 @@ flowchart LR
 
 | Status | # | Task | Owner | Acceptance |
 |---|---|---|---|---|
-| [ ] | 1.1 | Platform `docker-compose.yml` with **PostgreSQL (+ pgvector), Redis, Keycloak, OPA** (no MySQL — MySQL lives inside the handed-over `company-sandbox/`). Healthchecks + network link to `careops_sandbox_network`. | 🤖 | `docker compose up -d` brings all platform containers healthy (`NFR-17`); MCP container can curl `company-sandbox` `/api/health`. Port `3307` stays unexposed to agents (`NFR-1`). |
+| [x] | 1.1 | Platform `docker-compose.yml` with **PostgreSQL (+ pgvector), Redis, Keycloak, OPA** (no MySQL — MySQL lives inside the handed-over `company-sandbox/`). Healthchecks + network link to `careops_sandbox_network`. | 🤖 | `docker compose up -d` brings all platform containers healthy (`NFR-17`); MCP container can curl `company-sandbox` `/api/health`. Port `3307` stays unexposed to agents (`NFR-1`). Completed on branch `phase/1-walking-skeleton`. |
 | [ ] | 1.2 | Verify handed-over CareOps endpoints needed for the slice (`GET /api/health`, `GET /api/carers/{id}/compliance`) via integration check script. | 🤖 | Contract matches `company-sandbox/laravel-app/openapi.yaml` (`FR-4`). |
 | [ ] | 1.3 | Keycloak realm export: 3 roles (`staff`, `team_lead`, `department_head`), 1 agent service identity, test users with `@example.test` emails (`FR-1`, `Q-6`). | 🧑 approve role model (`B4`), 🤖 build | Realm imports on startup. Test passwords from `.env.example` placeholders only. |
 | [ ] | 1.4 | One OPA policy: staff may call `get_carer_dbs_status`. Policy unit tests (`opa test`). | 🤖 | Allow and deny cases tested (`FR-2`, `NFR-2`). |
