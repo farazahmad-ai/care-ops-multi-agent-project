@@ -1,0 +1,62 @@
+# CareOps Agent Platform .gitignore
+
+# Agent instruction rules (user-requested)
+AGENTS.md
+
+# Local personal notes, evaluation ground-truth, and learning log
+local/
+
+# Environment files & secrets (never commit secrets)
+.env
+*.env
+!.env.example
+
+# Python virtual environment & packages
+.venv/
+venv/
+ENV/
+env/
+
+# Python cache & compiled bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing, type checking & linting caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Build artifacts & distributions
+build/
+dist/
+*.egg-info/
+
+# Frontend dependencies & build output (Phase 1+)
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Temporary scratch and learning files
+temp_*.py
+temp/
+
+# PHP / Laravel dependencies & runtime caches (company-sandbox)
+vendor/
+**/vendor/
+node_modules/
+**/node_modules/
+*.log
+company-sandbox/laravel-app/storage/logs/*.log
+company-sandbox/laravel-app/storage/framework/cache/*
+company-sandbox/laravel-app/storage/framework/sessions/*
+company-sandbox/laravel-app/storage/framework/views/*
+.phpunit.result.cache
+.phpunit.cache
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+

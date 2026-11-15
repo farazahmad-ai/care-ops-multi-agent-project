@@ -1,0 +1,50 @@
+[project]
+name = "careops-agent-platform"
+version = "0.1.0"
+description = "CareOps Agent Platform workspace (Phase 0 baseline)"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    # Typed boundary models (AGENTS.md approved stack)
+    "pydantic>=2.9,<3.0",
+    # Environment-driven configuration with validation (Task 0.8, NFR-15)
+    "pydantic-settings>=2.6,<3.0",
+]
+
+[dependency-groups]
+dev = [
+    # Fast Python linter (AGENTS.md coding standards)
+    "ruff>=0.7,<1.0",
+    # Deterministic code formatter (AGENTS.md coding standards)
+    "black>=24.10,<26.0",
+    # Strict static type checker (AGENTS.md coding standards, NFR-15)
+    "mypy>=1.13,<2.0",
+    # Unit and integration test runner (Task 0.6, NFR-16)
+    "pytest>=8.3,<9.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["services/agent-api/src"]
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["services/agent-api/tests"]
+pythonpath = ["services/agent-api/src"]
+addopts = "-q"
+

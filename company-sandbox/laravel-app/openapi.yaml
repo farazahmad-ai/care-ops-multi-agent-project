@@ -1,0 +1,699 @@
+openapi: 3.0.3
+info:
+  title: CareOps Legacy Backend API
+  description: REST API for CareOps Ltd simulated existing care-staffing operations.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Local Docker Sandbox
+
+paths:
+  /health:
+    get:
+      summary: Liveness and database connectivity healthcheck (unauthenticated)
+      responses:
+        '200':
+          description: Service healthy and connected to MySQL.
+
+  /candidates:
+    get:
+      summary: List candidate applicants with optional filtering and pagination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [applied, screening, interview, offered, hired, rejected] }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Paginated candidate list.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /candidates/{id}:
+    get:
+      summary: Get single candidate record with interviews and compliance checks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Candidate record details.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /candidates/{id}/status:
+    patch:
+      summary: Transition candidate status along valid lifecycle (Rule R12)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [applied, screening, interview, offered, hired, rejected] }
+      responses:
+        '200':
+          description: Status updated.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /candidates/{id}/compliance:
+    get:
+      summary: List compliance checks for a candidate
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of candidate compliance checks.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /candidates/{id}/interviews:
+    post:
+      summary: Book an interview for a candidate
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [scheduled_at, interviewer]
+              properties:
+                scheduled_at: { type: string, format: date-time }
+                interviewer: { type: string }
+                notes: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Interview created.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /candidates/{id}/hire:
+    post:
+      summary: Hire an offered candidate converting them into an active carer (Rule R8)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '201':
+          description: Carer record created and compliance checks linked.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /carers:
+    get:
+      summary: List carers with optional filtering and pagination
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [active, suspended, left] }
+        - name: role
+          in: query
+          schema: { type: string, enum: [carer, senior_carer] }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Paginated carers.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /carers/{id}:
+    get:
+      summary: Get carer details with compliance checks
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Carer record.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /carers/{id}/compliance:
+    get:
+      summary: Get carer compliance checks with dynamically computed validity and days remaining
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Compliance array with computed_status and days_remaining.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /carers/{id}/compliance-checks:
+    post:
+      summary: Record a new compliance check for a carer
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type, issued_on, expires_on]
+              properties:
+                type: { type: string, enum: [dbs, right_to_work, moving_handling, safeguarding] }
+                issued_on: { type: string, format: date }
+                expires_on: { type: string, format: date }
+      responses:
+        '201':
+          description: Compliance check created.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /leave-requests:
+    get:
+      summary: List leave requests with optional filters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [pending, approved, rejected] }
+        - name: carer_id
+          in: query
+          schema: { type: integer }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 15 }
+      responses:
+        '200':
+          description: Paginated leave requests.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    post:
+      summary: Submit a leave request (Rule R7)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carer_id, start_date, end_date]
+              properties:
+                carer_id: { type: integer }
+                start_date: { type: string, format: date }
+                end_date: { type: string, format: date }
+                type: { type: string, enum: [annual, sick, unpaid] }
+      responses:
+        '201':
+          description: Leave request submitted.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '409':
+          description: Leave dates overlap with existing approved leave (LEAVE_OVERLAP).
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /leave-requests/{id}:
+    patch:
+      summary: Approve or reject a leave request (Rule R7 overlap re-check on approve)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [approved, rejected] }
+      responses:
+        '200':
+          description: Leave request decided.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: Leave overlaps existing approved leave.
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /clients:
+    get:
+      summary: List care home and domiciliary clients
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '200':
+          description: Paginated client list.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /clients/{id}:
+    get:
+      summary: Get single client record
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Client record.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /shifts:
+    get:
+      summary: List shifts with client and assignment info
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [open, assigned, completed, cancelled] }
+        - name: client_id
+          in: query
+          schema: { type: integer }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated shifts.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    post:
+      summary: Create a new shift
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, starts_at, ends_at]
+              properties:
+                client_id: { type: integer }
+                starts_at: { type: string, format: date-time }
+                ends_at: { type: string, format: date-time }
+                role_required: { type: string, enum: [carer, senior_carer], default: carer }
+                notes: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Shift created.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /shifts/{id}:
+    get:
+      summary: Get shift details including client and assignments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Shift record.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /shifts/{id}/eligible-carers:
+    get:
+      summary: List active carers who pass rules R1-R4 for the shift
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Array of eligible carers.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /shifts/{id}/assign:
+    post:
+      summary: Assign a carer to an open shift (Rules R1, R2, R3, R4; idempotent)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carer_id]
+              properties:
+                carer_id: { type: integer }
+                assigned_by: { type: integer, nullable: true }
+      responses:
+        '200':
+          description: Assignment confirmed (idempotent on repeat for same carer).
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: SHIFT_OVERLAP, SHIFT_NOT_OPEN, or CARER_ON_LEAVE.
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /shifts/{id}/cancel:
+    post:
+      summary: Cancel shift and its assignments
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Shift and assignments marked cancelled.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+  /pay-rates:
+    get:
+      summary: List pay and charge rates per role
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Array of pay rates.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+
+  /timesheets:
+    get:
+      summary: List timesheets with optional filtering
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [submitted, approved, rejected] }
+        - name: carer_id
+          in: query
+          schema: { type: integer }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated timesheets.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    post:
+      summary: Submit a timesheet (Rules R9, R10)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [shift_assignment_id, hours_worked]
+              properties:
+                shift_assignment_id: { type: integer }
+                hours_worked: { type: number, format: float }
+      responses:
+        '201':
+          description: Timesheet submitted.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '409':
+          description: DUPLICATE_TIMESHEET.
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /timesheets/{id}:
+    patch:
+      summary: Edit submitted timesheet hours (Rule R6 locks approved timesheets)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [hours_worked]
+              properties:
+                hours_worked: { type: number, format: float }
+      responses:
+        '200':
+          description: Timesheet hours updated.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: TIMESHEET_LOCKED.
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /timesheets/{id}/approve:
+    post:
+      summary: Approve a submitted timesheet (Rule R5 forbids double approval)
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                approved_by: { type: integer, nullable: true }
+      responses:
+        '200':
+          description: Timesheet approved.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: TIMESHEET_ALREADY_APPROVED.
+
+  /timesheets/{id}/reject:
+    post:
+      summary: Reject a submitted timesheet
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+      responses:
+        '200':
+          description: Timesheet rejected.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          description: TIMESHEET_LOCKED.
+
+  /invoices:
+    get:
+      summary: List invoices with optional filters
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: client_id
+          in: query
+          schema: { type: integer }
+        - name: status
+          in: query
+          schema: { type: string, enum: [draft, sent, paid] }
+        - name: per_page
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+      responses:
+        '200':
+          description: Paginated invoices.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+    post:
+      summary: Generate invoice for a client and period from approved uninvoiced timesheets (Rule R11)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [client_id, period_start, period_end]
+              properties:
+                client_id: { type: integer }
+                period_start: { type: string, format: date }
+                period_end: { type: string, format: date }
+      responses:
+        '201':
+          description: Invoice generated with line items and computed total.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '422':
+          $ref: '#/components/responses/422RuleOrValidation'
+
+  /invoices/{id}:
+    get:
+      summary: Get single invoice with client, lines, and carers
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Invoice details.
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: ServiceToken
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, details]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object }
+
+  responses:
+    401Unauthorized:
+      description: Missing, invalid, or unconfigured Authorization bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    404NotFound:
+      description: Record not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    422RuleOrValidation:
+      description: Business rule violation or request validation error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
