@@ -9,6 +9,9 @@ lint:
 test:
 	uv run pytest
 
+verify-contracts:
+	uv run python scripts/verify_legacy_contracts.py
+
 # Stub: Phase 3 will add Promptfoo / DeepEval golden evaluation suite
 eval:
 	@echo "[STUB] make eval is not implemented yet — scheduled for Phase 3 (Task 3.12)."
