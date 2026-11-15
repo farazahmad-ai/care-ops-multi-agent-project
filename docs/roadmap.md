@@ -61,7 +61,7 @@ flowchart LR
 
 | Status | # | Task | Owner | Output / acceptance |
 |---|---|---|---|---|
-| [ ] | 0.1 | Version control: `git init`, `.gitignore` (explicitly ignoring `local/` and `.env`), first commit, branch convention. | 🧑 approve, 🤖 do | **Deferred** until you ask (`O3`, `B3`). |
+| [x] | 0.1 | Version control: `git init`, `.gitignore` (explicitly ignoring `local/` and `.env`), first commit, branch convention. | 🧑 approve, 🤖 do | Completed: repository initialized on `main`, strict branch/PR rules added to `AGENTS.md`, initial baseline commit created (`4bdf8ee`). |
 | [x] | 0.2 | Check platform toolchain versions: Python, `uv`, Docker, Compose, Node. Record results. | 🤖 | `docs/dev-environment.md` listing versions found vs required. Python 3.12 gap resolved per `O1`. |
 | [x] | 0.3 | Install any missing platform tools (e.g. `uv`, Python 3.12, Node). | 🧑 | Toolchain verified in `docs/dev-environment.md`. Python 3.12, `uv`, Docker, Node/npm present. Native `uv run` commands used on Windows. |
 | [x] | 0.4 | Decide: platform Compose location, `company-sandbox` network attachment (`careops_sandbox_network` vs host `:8080`), `uv` adoption, local-model runtime (`Q-1`), embedding model (`Q-1`), OIDC flow (`O8`). | 🧑 | Closed via ADR-005 (`uv`), ADR-006 (Compose & network topology), ADR-007 (OIDC with PKCE), and ADR-008 (LiteLLM, Ollama, embeddings). |
