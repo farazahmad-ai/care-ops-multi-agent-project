@@ -1,0 +1,135 @@
+{
+  "id": "careops-realm",
+  "realm": "careops",
+  "displayName": "CareOps Platform",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "staff",
+        "description": "Standard staff member (Coordinator, HR/Finance officer) - can submit requests and view Screen 1"
+      },
+      {
+        "name": "team_lead",
+        "description": "Team lead (Ops lead, Recruitment lead) - can access approval queue on Screen 2"
+      },
+      {
+        "name": "department_head",
+        "description": "Department head (Director) - approves high-risk actions and views Screen 3 dashboard"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "careops-frontend",
+      "name": "CareOps React Frontend SPA",
+      "description": "Public SPA client authenticating via PKCE (ADR-007)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/*",
+        "http://127.0.0.1:3000/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*"
+      ],
+      "webOrigins": [
+        "*"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "careops-agent-api",
+      "name": "CareOps Agent API Backend",
+      "description": "Bearer-only resource server for FastAPI backend token validation",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": true
+    }
+  ],
+  "users": [
+    {
+      "username": "staff.user@example.test",
+      "email": "staff.user@example.test",
+      "firstName": "Sarah",
+      "lastName": "Staff",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "StaffPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "staff"
+      ]
+    },
+    {
+      "username": "lead.user@example.test",
+      "email": "lead.user@example.test",
+      "firstName": "Tom",
+      "lastName": "Lead",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "LeadPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "team_lead"
+      ]
+    },
+    {
+      "username": "head.user@example.test",
+      "email": "head.user@example.test",
+      "firstName": "Diana",
+      "lastName": "Head",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "HeadPass123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "department_head"
+      ]
+    },
+    {
+      "username": "unauthorized.user@example.test",
+      "email": "unauthorized.user@example.test",
+      "firstName": "Bob",
+      "lastName": "NoRoles",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "NoRole123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": []
+    }
+  ]
+}

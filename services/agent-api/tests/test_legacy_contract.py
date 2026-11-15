@@ -36,7 +36,7 @@ SANDBOX_AVAILABLE = _is_sandbox_reachable()
 @pytest.mark.skipif(not SANDBOX_AVAILABLE, reason="company-sandbox legacy backend is not running")
 def test_legacy_health_contract() -> None:
     """Verifies GET /api/health contract."""
-    with urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=5) as resp:
+    with urllib.request.urlopen(f"{BASE_URL}/api/health", timeout=10) as resp:
         assert resp.status == 200
         import json
 
@@ -51,7 +51,7 @@ def test_legacy_compliance_unauthenticated() -> None:
     """Verifies that GET /api/carers/{id}/compliance without token returns 401."""
     req = urllib.request.Request(f"{BASE_URL}/api/carers/1/compliance")
     with pytest.raises(urllib.error.HTTPError) as exc_info:
-        urllib.request.urlopen(req, timeout=5)
+        urllib.request.urlopen(req, timeout=10)
 
     assert exc_info.value.code == 401
 
@@ -65,7 +65,7 @@ def test_legacy_compliance_authenticated_contract() -> None:
     """Verifies GET /api/carers/{id}/compliance schema with valid token."""
     headers = {"Authorization": f"Bearer {SERVICE_TOKEN}"}
     req = urllib.request.Request(f"{BASE_URL}/api/carers/1/compliance", headers=headers)
-    with urllib.request.urlopen(req, timeout=5) as resp:
+    with urllib.request.urlopen(req, timeout=10) as resp:
         assert resp.status == 200
         import json
 

@@ -8,6 +8,16 @@ dependencies = [
     "pydantic>=2.9,<3.0",
     # Environment-driven configuration with validation (Task 0.8, NFR-15)
     "pydantic-settings>=2.6,<3.0",
+    # FastAPI application server (AGENTS.md approved stack, Task 1.7)
+    "fastapi>=0.115,<1.0",
+    # Production ASGI server for FastAPI (Task 1.7)
+    "uvicorn>=0.32,<1.0",
+    # Async HTTP client for OPA, MCP, and legacy API communication (Task 1.5, Task 1.7)
+    "httpx>=0.27,<1.0",
+    # JWT decoding and RS256 signature verification via Keycloak JWKS (ADR-007, Task 1.7)
+    "pyjwt[crypto]>=2.9,<3.0",
+    # Async PostgreSQL driver for immutable audit logging (Task 1.6, FR-18)
+    "asyncpg>=0.29,<1.0",
 ]
 
 [dependency-groups]
@@ -20,6 +30,8 @@ dev = [
     "mypy>=1.13,<2.0",
     # Unit and integration test runner (Task 0.6, NFR-16)
     "pytest>=8.3,<9.0",
+    # Async test support for FastAPI and asyncpg (Task 1.6, Task 1.10)
+    "pytest-asyncio>=0.24,<1.0",
 ]
 
 [tool.uv]
@@ -35,16 +47,22 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["B008"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
-mypy_path = ["services/agent-api/src"]
+mypy_path = ["services/agent-api/src", "services/mcp-servers/src"]
 warn_unused_configs = true
 
+[[tool.mypy.overrides]]
+module = "asyncpg.*"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
-testpaths = ["services/agent-api/tests"]
-pythonpath = ["services/agent-api/src"]
+testpaths = ["services/agent-api/tests", "services/mcp-servers/tests"]
+pythonpath = ["services/agent-api/src", "services/mcp-servers/src"]
 addopts = "-q"
+asyncio_mode = "auto"
 
